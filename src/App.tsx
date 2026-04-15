@@ -178,7 +178,7 @@ const BatteryIndicator = ({
   );
 };
 
-const StaticSocialBattery = ({ value }: { value: number }) => {
+const StaticSocialBattery = ({ value, label = "Final State" }: { value: number; label?: string }) => {
   const level = ENERGY_LEVELS[value];
   if (!level) return null;
 
@@ -212,7 +212,7 @@ const StaticSocialBattery = ({ value }: { value: number }) => {
         )}
       </div>
       <div className="space-y-0.5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Final State</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
         <p className="text-xs font-medium">
           {["Depleted", "Low", "Medium", "High", "Full"][value]}
         </p>
@@ -1169,19 +1169,20 @@ const ShareReportModal = ({
                               </div>
                               <h3 className="text-lg font-bold">{stage.subtitle}</h3>
                             </div>
-                            <BatteryIndicator 
-                              value={data.energy} 
-                              activeColor={`bg-[var(--color-${stage.accent})]`}
-                              inactiveColor="bg-secondary/50"
-                            />
                           </div>
                           
                           <div className="pl-11 space-y-6">
-                            <div className="space-y-2">
-                              <p className="text-xs italic text-muted-foreground font-serif">"{stage.prompt}"</p>
-                              <p className="text-base leading-relaxed text-[#1C1C1E]">
-                                {data.response || "No response recorded."}
-                              </p>
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <p className="text-xs italic text-muted-foreground font-serif">"{stage.prompt}"</p>
+                                <p className="text-base leading-relaxed text-[#1C1C1E]">
+                                  {data.response || "No response recorded."}
+                                </p>
+                              </div>
+                              
+                              <div className="flex items-center gap-4 pt-2">
+                                <StaticSocialBattery value={data.energy} label="Social Energy" />
+                              </div>
                             </div>
 
                             {(data.sketch || data.photo) && (
@@ -1500,19 +1501,20 @@ export default function App() {
                           </div>
                           <h3 className="text-lg font-bold">{stage.subtitle}</h3>
                         </div>
-                        <BatteryIndicator 
-                          value={data.energy} 
-                          activeColor={`bg-[var(--color-${stage.accent})]`}
-                          inactiveColor="bg-secondary/50"
-                        />
                       </div>
                       
                       <div className="pl-11 space-y-6">
-                        <div className="space-y-2">
-                          <p className="text-xs italic text-muted-foreground font-serif">"{stage.prompt}"</p>
-                          <p className="text-base leading-relaxed text-[#1C1C1E]">
-                            {data.response || "No response recorded."}
-                          </p>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <p className="text-xs italic text-muted-foreground font-serif">"{stage.prompt}"</p>
+                            <p className="text-base leading-relaxed text-[#1C1C1E]">
+                              {data.response || "No response recorded."}
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 pt-2">
+                            <StaticSocialBattery value={data.energy} label="Social Energy" />
+                          </div>
                         </div>
                       </div>
                     </div>
