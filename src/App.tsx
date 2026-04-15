@@ -389,12 +389,23 @@ const Envelope = ({ children, isOpen, onOpen, stageIndex }: { children: React.Re
   );
 };
 
-const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onChange: (v: string) => void; onPhotoUpload: (v: string) => void }) => {
+const SketchCanvasContent = ({ 
+  value, 
+  onChange, 
+  isModal = false, 
+  onExpand,
+  onClose 
+}: { 
+  value?: string; 
+  onChange: (v: string) => void; 
+  isModal?: boolean; 
+  onExpand?: () => void;
+  onClose?: () => void;
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState<"pen" | "eraser">("pen");
   const [history, setHistory] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -407,7 +418,7 @@ const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onCh
       const parent = canvas.parentElement;
       if (parent) {
         canvas.width = parent.clientWidth;
-        canvas.height = 200;
+        canvas.height = isModal ? parent.clientHeight : 200;
         
         // Restore content if exists
         if (value) {
@@ -421,7 +432,28 @@ const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onCh
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
-  }, []);
+  }, [isModal]);
+
+  // Sync value changes from outside (e.g. from modal back to small canvas)
+  useEffect(() => {
+    if (!isDrawing) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      if (value) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = value;
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+  }, [value, isDrawing]);
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
@@ -489,6 +521,101 @@ const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onCh
     img.src = lastState;
   };
 
+  const clear = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    onChange("");
+    setHistory([]);
+  };
+
+  return (
+    <div className={`relative bg-[#F1F1F1] rounded-2xl overflow-hidden touch-none border border-black/5 ${isModal ? 'h-[60vh] md:h-[70vh]' : ''}`}>
+      <canvas
+        ref={canvasRef}
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={stopDrawing}
+        onMouseLeave={stopDrawing}
+        onTouchStart={startDrawing}
+        onTouchMove={draw}
+        onTouchEnd={stopDrawing}
+        className="w-full h-full cursor-crosshair"
+      />
+      
+      <div className={`absolute ${isModal ? 'bottom-6 right-6 flex-row' : 'top-3 right-3 flex-col'} flex gap-2`}>
+        <Button
+          variant={tool === "pen" ? "default" : "secondary"}
+          size="icon"
+          onClick={() => setTool("pen")}
+          className="w-10 h-10 rounded-full apple-shadow"
+        >
+          <Pencil size={18} />
+        </Button>
+        <Button
+          variant={tool === "eraser" ? "default" : "secondary"}
+          size="icon"
+          onClick={() => setTool("eraser")}
+          className="w-10 h-10 rounded-full apple-shadow"
+        >
+          <Eraser size={18} />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={undo}
+          disabled={history.length === 0}
+          className="w-10 h-10 rounded-full apple-shadow"
+        >
+          <Undo2 size={18} />
+        </Button>
+        {isModal && (
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={clear}
+            className="w-10 h-10 rounded-full apple-shadow text-destructive hover:text-destructive"
+          >
+            <Trash2 size={18} />
+          </Button>
+        )}
+        {!isModal && onExpand && (
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={onExpand}
+            className="w-10 h-10 rounded-full apple-shadow"
+          >
+            <Maximize2 size={18} />
+          </Button>
+        )}
+      </div>
+
+      {!isModal && onExpand && (
+        <div 
+          className="absolute inset-0 bg-transparent cursor-pointer group pointer-events-none"
+        >
+          <div 
+            className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-auto"
+            onClick={onExpand}
+          >
+            <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full apple-shadow flex items-center gap-2">
+              <Maximize2 size={14} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Expand Sketch</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onChange: (v: string) => void; onPhotoUpload: (v: string) => void }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -503,47 +630,11 @@ const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onCh
 
   return (
     <div className="space-y-4">
-      <div className="relative bg-[#F1F1F1] rounded-2xl overflow-hidden touch-none border border-black/5">
-        <canvas
-          ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-          className="w-full cursor-crosshair"
-        />
-        
-        <div className="absolute top-3 right-3 flex flex-col gap-2">
-          <Button
-            variant={tool === "pen" ? "default" : "secondary"}
-            size="icon"
-            onClick={() => setTool("pen")}
-            className="w-10 h-10 rounded-full apple-shadow"
-          >
-            <Pencil size={18} />
-          </Button>
-          <Button
-            variant={tool === "eraser" ? "default" : "secondary"}
-            size="icon"
-            onClick={() => setTool("eraser")}
-            className="w-10 h-10 rounded-full apple-shadow"
-          >
-            <Eraser size={18} />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={undo}
-            disabled={history.length === 0}
-            className="w-10 h-10 rounded-full apple-shadow"
-          >
-            <Undo2 size={18} />
-          </Button>
-        </div>
-      </div>
+      <SketchCanvasContent 
+        value={value} 
+        onChange={onChange} 
+        onExpand={() => setIsModalOpen(true)} 
+      />
 
       <div className="flex justify-center">
         <input
@@ -563,6 +654,66 @@ const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onCh
           Upload photo or drawing
         </Button>
       </div>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-12">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setIsModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-4xl bg-white rounded-[2.5rem] apple-shadow-lg overflow-hidden z-10"
+            >
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold tracking-tight">Sketch & Refine</h3>
+                    <p className="text-xs text-muted-foreground mt-1">Draw your ideas in detail</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setIsModalOpen(false)}
+                    className="rounded-full hover:bg-secondary/50"
+                  >
+                    <X size={20} />
+                  </Button>
+                </div>
+                
+                <SketchCanvasContent 
+                  value={value} 
+                  onChange={onChange} 
+                  isModal={true} 
+                  onClose={() => setIsModalOpen(false)} 
+                />
+
+                <div className="flex justify-end gap-3 mt-8">
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => setIsModalOpen(false)}
+                    className="rounded-full px-8 h-12 text-sm font-semibold"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => setIsModalOpen(false)}
+                    className="rounded-full px-12 h-12 text-sm font-semibold apple-shadow"
+                  >
+                    Done
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
