@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import LZString from "lz-string";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -875,12 +876,22 @@ const ShareReportModal = ({
   const [isExporting, setIsExporting] = useState(false);
 
   const exportAsImage = async () => {
-    if (!reportRef.current) return;
+    if (!reportRef.current) {
+      console.error("PNG Export: Target element (reportRef) not found.");
+      return;
+    }
+    
     setIsExporting(true);
+    console.log("PNG Export: Starting capture...");
+    console.log("PNG Export: Target element found, dimensions:", {
+      width: reportRef.current.offsetWidth,
+      height: reportRef.current.scrollHeight
+    });
+
     try {
-      // Ensure the element is fully rendered and capture the full height
+      // Capture the report container as a high-quality image
       const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
+        scale: 2, // High resolution for readability
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#F8F9FA",
@@ -888,62 +899,55 @@ const ShareReportModal = ({
         width: reportRef.current.offsetWidth,
         height: reportRef.current.scrollHeight,
         onclone: (clonedDoc) => {
+          // Ensure the cloned element is fully expanded for capture
           const el = clonedDoc.querySelector('[data-report-container="true"]') as HTMLElement;
           if (el) {
             el.style.height = 'auto';
             el.style.overflow = 'visible';
+            el.style.display = 'block';
           }
         }
       });
+      
+      console.log("PNG Export: Capture successful. Triggering download...");
+      
       const link = document.createElement("a");
       link.download = `cafe-probe-report-${entry.id.slice(0, 8)}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = canvas.toDataURL("image/png", 1.0);
       link.click();
+      
       toast.success("Report exported as PNG");
     } catch (err) {
-      console.error("Export Error:", err);
-      toast.error("Failed to export image");
+      console.error("PNG Export Error:", err);
+      toast.error("Failed to export image. Please try again.");
     } finally {
       setIsExporting(false);
     }
   };
 
-  const exportAsPDF = async () => {
-    if (!reportRef.current) return;
-    setIsExporting(true);
+  const shareLink = () => {
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#F8F9FA",
-        logging: false,
-        width: reportRef.current.offsetWidth,
-        height: reportRef.current.scrollHeight,
-        onclone: (clonedDoc) => {
-          const el = clonedDoc.querySelector('[data-report-container="true"]') as HTMLElement;
-          if (el) {
-            el.style.height = 'auto';
-            el.style.overflow = 'visible';
-          }
+      // Create a copy of the entry without images for the link to keep it short
+      // Images are too large for URLs, so we'll share the text and layout
+      const shareableData = {
+        ...entry,
+        stages: {
+          preparation: { ...entry.stages.preparation, sketch: undefined, photo: undefined },
+          arrival: { ...entry.stages.arrival, sketch: undefined, photo: undefined },
+          sitting: { ...entry.stages.sitting, sketch: undefined, photo: undefined },
+          reflection: { ...entry.stages.reflection, sketch: undefined, photo: undefined },
         }
-      });
+      };
+
+      const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(shareableData));
+      const url = new URL(window.location.href);
+      url.searchParams.set("report", compressed);
       
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "px",
-        format: [canvas.width / 2, canvas.height / 2]
-      });
-      
-      pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
-      pdf.save(`cafe-probe-report-${entry.id.slice(0, 8)}.pdf`);
-      toast.success("Report exported as PDF");
+      navigator.clipboard.writeText(url.toString());
+      toast.success("Shareable link copied to clipboard! (Note: Images are excluded from links for reliability)");
     } catch (err) {
-      console.error("Export Error:", err);
-      toast.error("Failed to export PDF");
-    } finally {
-      setIsExporting(false);
+      console.error("Share Error:", err);
+      toast.error("Failed to generate share link");
     }
   };
 
@@ -1011,12 +1015,11 @@ const ShareReportModal = ({
               <Button 
                 variant="default" 
                 size="sm" 
-                onClick={exportAsPDF}
-                disabled={isExporting}
+                onClick={shareLink}
                 className="rounded-full h-10 px-6 gap-2 apple-shadow"
               >
-                <Download size={16} />
-                <span className="hidden sm:inline">Download PDF</span>
+                <Share2 size={16} />
+                <span className="hidden sm:inline">Share Link</span>
               </Button>
               <Button 
                 variant="ghost" 
@@ -1207,6 +1210,7 @@ export default function App() {
   const [isReflectionCollapsed, setIsReflectionCollapsed] = useState(true);
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [publicEntry, setPublicEntry] = useState<Entry | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Current Journey State
@@ -1224,6 +1228,22 @@ export default function App() {
 
   // Load Journal
   useEffect(() => {
+    // Check for public report link
+    const params = new URLSearchParams(window.location.search);
+    const reportData = params.get("report");
+    if (reportData) {
+      try {
+        const decompressed = LZString.decompressFromEncodedURIComponent(reportData);
+        if (decompressed) {
+          const entry = JSON.parse(decompressed);
+          setPublicEntry(entry);
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to load public report:", err);
+      }
+    }
+
     const saved = localStorage.getItem("cafe_probe_journal");
     if (saved) {
       try {
@@ -1325,6 +1345,163 @@ export default function App() {
     setSelectedEntryId(entry.id);
     setStage("canvas");
   };
+
+  if (publicEntry) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] p-4 md:p-10 flex flex-col items-center">
+        <div className="w-full max-w-4xl space-y-8">
+          <div className="flex items-center justify-between bg-white p-6 rounded-[2rem] apple-shadow border border-black/5">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                <BookOpen size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Public Experience Report</h2>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium">View Only Mode</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                const url = new URL(window.location.href);
+                url.searchParams.delete("report");
+                window.location.href = url.toString();
+              }}
+              className="rounded-full h-10 px-6 border-secondary hover:bg-secondary/20"
+            >
+              Go to App
+            </Button>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 space-y-12 md:space-y-16 border border-black/5 shadow-sm">
+            {/* Report Branding */}
+            <div className="flex justify-between items-start border-b border-secondary/50 pb-10">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                    <Zap size={18} />
+                  </div>
+                  <h1 className="text-2xl font-bold tracking-tighter">CAFÉ PROBE</h1>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">Experience Research Report</p>
+                  <p className="text-sm text-muted-foreground">A study of social interaction and spatial design.</p>
+                </div>
+              </div>
+              <div className="text-right space-y-1">
+                <p className="text-sm font-bold">{new Date(publicEntry.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</p>
+                <p className="text-xs text-muted-foreground">{new Date(publicEntry.date).toLocaleTimeString()}</p>
+                <Badge variant="outline" className="mt-2 rounded-full border-primary/20 text-primary uppercase text-[9px] font-bold tracking-widest">
+                  ID: {publicEntry.id.slice(0, 8)}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Participant Info */}
+            <div className="grid grid-cols-3 gap-8">
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Participant</p>
+                <p className="text-lg font-medium">{publicEntry.participantName || "Anonymous"}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Overall Feeling</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{EMOJIS[publicEntry.overallFeeling]}</span>
+                  <p className="text-sm font-medium">
+                    {["Stressed", "Unsure", "Neutral", "Good", "Excellent"][publicEntry.overallFeeling]}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Interaction</p>
+                <p className="text-sm font-medium">{publicEntry.interacted}</p>
+              </div>
+            </div>
+
+            {/* Journey Stages */}
+            <div className="space-y-12">
+              <h2 className="text-xs font-bold uppercase tracking-[0.4em] text-muted-foreground border-b border-secondary/30 pb-4">Journey Reflections</h2>
+              <div className="grid grid-cols-1 gap-12">
+                {STAGES_CONFIG.map(stage => {
+                  const data = publicEntry.stages[stage.id as keyof Entry["stages"]];
+                  return (
+                    <div key={stage.id} className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full bg-[var(--color-${stage.accent})] flex items-center justify-center text-white`}>
+                            {stage.icon}
+                          </div>
+                          <h3 className="text-lg font-bold">{stage.subtitle}</h3>
+                        </div>
+                        <div className="flex gap-1">
+                          {[...Array(7)].map((_, i) => (
+                            <div 
+                              key={i} 
+                              className={`w-2 h-4 rounded-full ${
+                                i <= data.energy 
+                                  ? `bg-[var(--color-${stage.accent})]` 
+                                  : "bg-secondary/50"
+                              }`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="pl-11 space-y-6">
+                        <div className="space-y-2">
+                          <p className="text-xs italic text-muted-foreground font-serif">"{stage.prompt}"</p>
+                          <p className="text-base leading-relaxed text-[#1C1C1E]">
+                            {data.response || "No response recorded."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Ideal Layout */}
+            {publicEntry.idealLayout && (
+              <div className="space-y-8 pt-10 border-t border-secondary/50">
+                <h2 className="text-xs font-bold uppercase tracking-[0.4em] text-muted-foreground">Ideal Café Design</h2>
+                <div className="rounded-[2rem] overflow-hidden border border-secondary/50 bg-secondary/5 aspect-video relative">
+                  <CafeFloorPlan />
+                  {publicEntry.idealLayout.elements.map(el => (
+                    <div 
+                      key={el.id}
+                      className="absolute text-3xl select-none pointer-events-none"
+                      style={{ 
+                        left: `${el.x}%`, 
+                        top: `${el.y}%`,
+                        transform: `translate(-50%, -50%) rotate(${el.rotation}deg) scale(${el.scale})`
+                      }}
+                    >
+                      {el.icon}
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Design Reflection</p>
+                  <p className="text-base italic text-[#1C1C1E] leading-relaxed">
+                    "{publicEntry.idealLayout.reflection}"
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="pt-16 border-t border-secondary/30 flex flex-col items-center gap-6 opacity-40">
+              <div className="h-px w-12 bg-foreground" />
+              <p className="text-[9px] uppercase tracking-[0.4em] font-bold text-center">
+                Slow Technology • Introspection • Café Probe Project
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center selection:bg-primary/10 selection:text-primary">
