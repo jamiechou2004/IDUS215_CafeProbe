@@ -147,13 +147,79 @@ const EMOJIS = ["😫", "😕", "😐", "🙂", "✨"];
 
 const ENERGY_LEVELS = [
   { color: "text-rose-600", bars: 0, type: "empty" },
-  { color: "bg-rose-600", bars: 1, type: "bars" },
   { color: "bg-orange-500", bars: 2, type: "bars" },
   { color: "bg-amber-500", bars: 3, type: "bars" },
   { color: "bg-emerald-400", bars: 4, type: "bars" },
-  { color: "bg-emerald-500", bars: 5, type: "bars" },
-  { color: "bg-emerald-600", bars: 6, type: "full" },
+  { color: "bg-emerald-600", bars: 5, type: "full" },
 ];
+
+const BatteryIndicator = ({ 
+  value, 
+  activeColor = "bg-white", 
+  inactiveColor = "bg-white/30" 
+}: { 
+  value: number; 
+  activeColor?: string; 
+  inactiveColor?: string;
+}) => {
+  return (
+    <div className="flex gap-0.5">
+      {[...Array(5)].map((_, i) => (
+        <div 
+          key={i} 
+          className={`w-1.5 h-3 rounded-[2px] transition-colors duration-300 ${
+            i <= value 
+              ? activeColor 
+              : inactiveColor
+          }`} 
+        />
+      ))}
+    </div>
+  );
+};
+
+const StaticSocialBattery = ({ value }: { value: number }) => {
+  const level = ENERGY_LEVELS[value];
+  if (!level) return null;
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative w-8 h-12 border-[2px] border-[#1C1C1E] rounded-[10px] flex flex-col-reverse items-center p-0.5 bg-white shadow-sm">
+        {/* Battery Tip */}
+        <div className="absolute -top-[4px] left-1/2 -translate-x-1/2 w-3 h-[3px] rounded-t-full bg-[#1C1C1E]" />
+        
+        {level.type === 'empty' && (
+          <div className="flex-1 flex items-center justify-center">
+            <Zap size={14} className={`${level.color} fill-current`} />
+          </div>
+        )}
+        
+        {level.type === 'bars' && (
+          <div className="w-full flex flex-col-reverse gap-[2px]">
+            {Array.from({ length: level.bars }).map((_, idx) => (
+              <div 
+                key={idx}
+                className={`h-[6px] w-full rounded-[2px] ${level.color}`} 
+              />
+            ))}
+          </div>
+        )}
+        
+        {level.type === 'full' && (
+          <div className={`absolute inset-[2px] rounded-[6px] ${level.color} flex items-center justify-center`}>
+            <Zap size={14} className="text-white fill-white" />
+          </div>
+        )}
+      </div>
+      <div className="space-y-0.5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Final State</p>
+        <p className="text-xs font-medium">
+          {["Depleted", "Low", "Medium", "High", "Full"][value]}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const EnergyTracker = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => {
   return (
@@ -1064,7 +1130,7 @@ const ShareReportModal = ({
                 </div>
 
                 {/* Participant Info */}
-                <div className="grid grid-cols-3 gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                   <div className="space-y-2">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Participant</p>
                     <p className="text-lg font-medium">{entry.participantName || "Anonymous"}</p>
@@ -1081,6 +1147,10 @@ const ShareReportModal = ({
                   <div className="space-y-2">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Interaction</p>
                     <p className="text-sm font-medium">{entry.interacted}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Social Energy</p>
+                    <StaticSocialBattery value={entry.stages.reflection.energy} />
                   </div>
                 </div>
 
@@ -1099,18 +1169,11 @@ const ShareReportModal = ({
                               </div>
                               <h3 className="text-lg font-bold">{stage.subtitle}</h3>
                             </div>
-                            <div className="flex gap-1">
-                              {[...Array(7)].map((_, i) => (
-                                <div 
-                                  key={i} 
-                                  className={`w-2 h-4 rounded-full ${
-                                    i <= data.energy 
-                                      ? `bg-[var(--color-${stage.accent})]` 
-                                      : "bg-secondary/50"
-                                  }`} 
-                                />
-                              ))}
-                            </div>
+                            <BatteryIndicator 
+                              value={data.energy} 
+                              activeColor={`bg-[var(--color-${stage.accent})]`}
+                              inactiveColor="bg-secondary/50"
+                            />
                           </div>
                           
                           <div className="pl-11 space-y-6">
@@ -1398,7 +1461,7 @@ export default function App() {
             </div>
 
             {/* Participant Info */}
-            <div className="grid grid-cols-3 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Participant</p>
                 <p className="text-lg font-medium">{publicEntry.participantName || "Anonymous"}</p>
@@ -1415,6 +1478,10 @@ export default function App() {
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Interaction</p>
                 <p className="text-sm font-medium">{publicEntry.interacted}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Social Energy</p>
+                <StaticSocialBattery value={publicEntry.stages.reflection.energy} />
               </div>
             </div>
 
@@ -1433,18 +1500,11 @@ export default function App() {
                           </div>
                           <h3 className="text-lg font-bold">{stage.subtitle}</h3>
                         </div>
-                        <div className="flex gap-1">
-                          {[...Array(7)].map((_, i) => (
-                            <div 
-                              key={i} 
-                              className={`w-2 h-4 rounded-full ${
-                                i <= data.energy 
-                                  ? `bg-[var(--color-${stage.accent})]` 
-                                  : "bg-secondary/50"
-                              }`} 
-                            />
-                          ))}
-                        </div>
+                        <BatteryIndicator 
+                          value={data.energy} 
+                          activeColor={`bg-[var(--color-${stage.accent})]`}
+                          inactiveColor="bg-secondary/50"
+                        />
                       </div>
                       
                       <div className="pl-11 space-y-6">
@@ -1547,7 +1607,7 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="flex-1 flex flex-col items-center justify-center text-center py-12 bg-[#F5F0E8] -mx-6 px-6 rounded-[3rem]"
+              className="w-full flex flex-col items-center justify-center text-center py-12 bg-[#F5F0E8] -mx-6 px-6 rounded-[3rem]"
             >
               <h1 className="text-6xl font-serif mb-2 text-[#1C1C1E]">The Cafe Experience</h1>
               <p className="text-xl font-serif italic text-[#2C2C2E] mb-8">A Cultural Probe on Social Interaction</p>
@@ -1599,7 +1659,7 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1 flex flex-col"
+              className="w-full flex flex-col"
             >
               <div className="mb-12 flex items-center justify-between">
                 <div>
@@ -2159,7 +2219,7 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1 flex flex-col"
+              className="w-full flex flex-col"
             >
               <AnimatePresence mode="wait">
                 {selectedEntryId ? (
@@ -2279,18 +2339,7 @@ export default function App() {
                                 >
                                   <div className={`px-6 py-3 bg-[var(--color-${stage.accent})] text-white flex justify-between items-center`}>
                                     <span className="text-[10px] font-bold uppercase tracking-widest">{stage.subtitle}</span>
-                                    <div className="flex gap-0.5">
-                                      {ENERGY_LEVELS.map((level, i) => (
-                                        <div 
-                                          key={i} 
-                                          className={`w-1.5 h-3 rounded-full ${
-                                            i <= data.energy 
-                                              ? "bg-white" 
-                                              : "bg-white/30"
-                                          }`} 
-                                        />
-                                      ))}
-                                    </div>
+                                    <BatteryIndicator value={data.energy} />
                                   </div>
                                   <CardContent className="p-6 space-y-4 relative">
                                     <div className="absolute top-4 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
