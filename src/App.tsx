@@ -23,7 +23,8 @@ import {
   Eraser,
   Undo2,
   ImagePlus,
-  X
+  X,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,6 +58,7 @@ interface CanvasLayout {
 interface Entry {
   id: string;
   date: string;
+  participantName?: string;
   stages: {
     preparation: StageData;
     arrival: StageData;
@@ -573,6 +575,7 @@ export default function App() {
   const [isEnvelopeOpen, setIsEnvelopeOpen] = useState(false);
   const [journal, setJournal] = useState<Entry[]>([]);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [participantName, setParticipantName] = useState("");
   
   // Canvas State
   const [canvasElements, setCanvasElements] = useState<CanvasElement[]>([]);
@@ -610,6 +613,7 @@ export default function App() {
     const newEntry: Entry = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
+      participantName: participantName.trim() || undefined,
       stages: responses as Entry["stages"],
       overallFeeling: responses.reflection.energy,
       interacted,
@@ -727,13 +731,35 @@ export default function App() {
               
               <div className="w-48 h-0.5 bg-[#D48C6A] mb-12" />
               
-              <div className="max-w-xl space-y-6 text-left text-[#3D2B1F]/80 leading-relaxed">
-                <p className="font-bold">Thanks for being part of this project, we really appreciate it.</p>
-                <p>This kit is meant to guide you through your next café visit and help you think about your experience, especially how you interact with the space and people around you.</p>
-                <p>There are no right or wrong answers. Just be honest and go with whatever feels natural.</p>
-                <p>Please complete each activity in order and only open each envelope when instructed.</p>
-                <p className="italic text-[#3D2B1F]/60">We're excited to see your responses and learn from your experience.</p>
-                <p className="font-medium">— Café Social Experience Research Team</p>
+              <div className="max-w-xl space-y-8 text-left text-[#3D2B1F]/80 leading-relaxed">
+                <div className="space-y-6">
+                  <p className="font-bold">Thanks for being part of this project, we really appreciate it.</p>
+                  <p>This kit is meant to guide you through your next café visit and help you think about your experience, especially how you interact with the space and people around you.</p>
+                  <p>There are no right or wrong answers. Just be honest and go with whatever feels natural.</p>
+                  <p>Please complete each activity in order and only open each envelope when instructed.</p>
+                </div>
+
+                <div className="p-8 bg-white/40 backdrop-blur-sm rounded-3xl border border-[#3D2B1F]/5 space-y-4">
+                  <div className="flex items-center gap-2 text-[#3D2B1F]/60">
+                    <User size={16} />
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em]">Participant Identity</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs text-[#3D2B1F]/60">Your name or nickname (optional)</p>
+                    <input 
+                      type="text"
+                      value={participantName}
+                      onChange={(e) => setParticipantName(e.target.value)}
+                      placeholder="Enter your name..."
+                      className="w-full bg-white/60 border-none rounded-xl h-12 px-4 text-sm focus:ring-2 focus:ring-[#3D2B1F]/10 outline-none transition-all placeholder:text-[#3D2B1F]/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <p className="italic text-[#3D2B1F]/60">We're excited to see your responses and learn from your experience.</p>
+                  <p className="font-medium">— Café Social Experience Research Team</p>
+                </div>
               </div>
 
               <Button onClick={startNewJourney} className="mt-12 h-14 px-10 rounded-full text-base font-medium bg-[#3D2B1F] hover:bg-[#3D2B1F]/90 text-white apple-shadow group">
@@ -946,6 +972,25 @@ export default function App() {
                               </div>
                             </div>
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentStep === 3 && (
+                      <div className="p-8 bg-secondary/10 rounded-[2rem] space-y-4 border border-black/5">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <User size={14} />
+                          <p className="text-[10px] font-bold uppercase tracking-[0.2em]">Confirm Identity</p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground/70">How should we identify this reflection?</p>
+                          <input 
+                            type="text"
+                            value={participantName}
+                            onChange={(e) => setParticipantName(e.target.value)}
+                            placeholder="Your name or nickname..."
+                            className="w-full bg-white/50 border-none rounded-xl h-12 px-4 text-sm focus:ring-2 focus:ring-primary/10 outline-none transition-all placeholder:text-muted-foreground/30"
+                          />
                         </div>
                       </div>
                     )}
@@ -1329,13 +1374,21 @@ export default function App() {
                     {journal.find(e => e.id === selectedEntryId) && (
                       <div className="space-y-10 pb-10">
                         <header className="space-y-2">
-                          <h2 className="text-3xl font-bold tracking-tight">
-                            {new Date(journal.find(e => e.id === selectedEntryId)!.date).toLocaleDateString(undefined, { 
-                              weekday: 'long',
-                              month: 'long', 
-                              day: 'numeric' 
-                            })}
-                          </h2>
+                          <div className="flex items-center justify-between">
+                            <h2 className="text-3xl font-bold tracking-tight">
+                              {new Date(journal.find(e => e.id === selectedEntryId)!.date).toLocaleDateString(undefined, { 
+                                weekday: 'long',
+                                month: 'long', 
+                                day: 'numeric' 
+                              })}
+                            </h2>
+                            {journal.find(e => e.id === selectedEntryId)!.participantName && (
+                              <Badge variant="secondary" className="rounded-full px-4 py-1 bg-primary/5 text-primary border-none flex items-center gap-2">
+                                <User size={12} />
+                                {journal.find(e => e.id === selectedEntryId)!.participantName}
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-muted-foreground flex items-center gap-2">
                             <Clock size={14} />
                             {new Date(journal.find(e => e.id === selectedEntryId)!.date).toLocaleTimeString(undefined, { 
