@@ -1082,7 +1082,7 @@ export default function App() {
                         {isToolkitCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
                       </Button>
                     </div>
-                    <ScrollArea className="flex-1">
+                    <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
                       <div className={`p-6 ${isToolkitCollapsed ? 'space-y-6 px-4' : 'space-y-8'}`}>
                         {["furniture", "people", "atmosphere", "signals"].map(cat => (
                           <div key={cat} className="space-y-4">
@@ -1118,7 +1118,7 @@ export default function App() {
                           </div>
                         ))}
                       </div>
-                    </ScrollArea>
+                    </div>
                   </Card>
                 </motion.div>
 
