@@ -24,8 +24,15 @@ import {
   Undo2,
   ImagePlus,
   X,
-  User
+  User,
+  Share2,
+  Download,
+  Copy,
+  FileText,
+  Image as ImageIcon
 } from "lucide-react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -150,7 +157,7 @@ const ENERGY_LEVELS = [
 const EnergyTracker = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => {
   return (
     <div className="space-y-8">
-      <p className="text-center text-sm font-serif italic text-[#3D2B1F]/60">
+      <p className="text-center text-sm font-serif italic text-[#2C2C2E]">
         What's your social energy right now?
       </p>
       <div className="flex justify-center items-end gap-3 px-2">
@@ -164,12 +171,12 @@ const EnergyTracker = ({ value, onChange }: { value: number; onChange: (v: numbe
           >
             <div className={`relative w-11 h-18 border-[2.5px] rounded-[14px] flex flex-col-reverse items-center p-1 transition-all duration-300 ${
               value === i 
-                ? "border-[#3D2B1F] bg-white shadow-lg -translate-y-2" 
-                : "border-[#3D2B1F]/20 bg-transparent hover:border-[#3D2B1F]/40"
+                ? "border-[#1C1C1E] bg-white shadow-lg -translate-y-2" 
+                : "border-[#1C1C1E]/20 bg-transparent hover:border-[#1C1C1E]/40"
             }`}>
               {/* Battery Tip */}
               <div className={`absolute -top-[6px] left-1/2 -translate-x-1/2 w-4 h-[4px] rounded-t-full transition-colors ${
-                value === i ? "bg-[#3D2B1F]" : "bg-[#3D2B1F]/20"
+                value === i ? "bg-[#1C1C1E]" : "bg-[#1C1C1E]/20"
               }`} />
               
               {level.type === 'empty' && (
@@ -205,7 +212,7 @@ const EnergyTracker = ({ value, onChange }: { value: number; onChange: (v: numbe
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 5 }}
-                  className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#3D2B1F]"
+                  className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#1C1C1E]"
                 />
               )}
             </AnimatePresence>
@@ -348,8 +355,8 @@ const Envelope = ({ children, isOpen, onOpen, stageIndex }: { children: React.Re
                 </motion.div>
                 
                 <div className="space-y-2">
-                  <h3 className="text-3xl font-serif text-[#3D2B1F] tracking-tight">Envelope {stageIndex + 1}</h3>
-                  <p className="text-sm text-[#3D2B1F]/50 font-medium italic">{config.instruction}</p>
+                  <h3 className="text-3xl font-serif text-[#1C1C1E] tracking-tight">Envelope {stageIndex + 1}</h3>
+                  <p className="text-sm text-[#48484A] font-medium italic">{config.instruction}</p>
                 </div>
 
                 <div className="space-y-4">
@@ -360,7 +367,7 @@ const Envelope = ({ children, isOpen, onOpen, stageIndex }: { children: React.Re
                   <motion.p 
                     initial={{ opacity: 0 }}
                     whileHover={{ opacity: 1 }}
-                    className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#3D2B1F]/30"
+                    className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#636366]"
                   >
                     Tap to open
                   </motion.p>
@@ -473,7 +480,7 @@ const SketchCanvasContent = ({
     ctx.lineWidth = tool === "pen" ? 2 : 20;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = tool === "pen" ? "#3D2B1F" : "#F1F1F1";
+    ctx.strokeStyle = tool === "pen" ? "#1C1C1E" : "#F1F1F1";
     setIsDrawing(true);
   };
 
@@ -602,8 +609,8 @@ const SketchCanvasContent = ({
             onClick={onExpand}
           >
             <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full apple-shadow flex items-center gap-2">
-              <Maximize2 size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Expand Sketch</span>
+              <Maximize2 size={14} className="text-[#1C1C1E]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#1C1C1E]">Expand Sketch</span>
             </div>
           </div>
         </div>
@@ -648,7 +655,7 @@ const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onCh
           variant="ghost"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
-          className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors"
+          className="text-[10px] uppercase tracking-widest font-bold text-[#1C1C1E] hover:text-primary transition-colors"
         >
           <ImagePlus size={14} className="mr-2" />
           Upload photo or drawing
@@ -674,8 +681,8 @@ const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onCh
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-xl font-bold tracking-tight">Sketch & Refine</h3>
-                    <p className="text-xs text-muted-foreground mt-1">Draw your ideas in detail</p>
+                    <h3 className="text-xl font-bold tracking-tight text-[#1C1C1E]">Sketch & Refine</h3>
+                    <p className="text-xs text-[#1C1C1E]/60 mt-1">Draw your ideas in detail</p>
                   </div>
                   <Button 
                     variant="ghost" 
@@ -718,6 +725,445 @@ const SketchCanvas = ({ value, onChange, onPhotoUpload }: { value?: string; onCh
   );
 };
 
+const StageDetailModal = ({ 
+  isOpen, 
+  onClose, 
+  stage, 
+  data, 
+  onSave 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  stage: typeof STAGES_CONFIG[0]; 
+  data: StageData; 
+  onSave: (newData: Partial<StageData>) => void;
+}) => {
+  const [localResponse, setLocalResponse] = useState(data.response);
+  const [localEnergy, setLocalEnergy] = useState(data.energy);
+  const [localSketch, setLocalSketch] = useState(data.sketch || "");
+  const [localPhoto, setLocalPhoto] = useState(data.photo || "");
+
+  useEffect(() => {
+    if (isOpen) {
+      setLocalResponse(data.response);
+      setLocalEnergy(data.energy);
+      setLocalSketch(data.sketch || "");
+      setLocalPhoto(data.photo || "");
+    }
+  }, [isOpen, data]);
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        />
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="relative w-full max-w-2xl bg-white rounded-[2.5rem] apple-shadow overflow-hidden flex flex-col max-h-[90vh]"
+        >
+          <div className={`px-8 py-6 bg-[var(--color-${stage.accent})] text-white flex justify-between items-center shrink-0`}>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-70 mb-1">{stage.subtitle}</p>
+              <h3 className="text-xl font-bold">{stage.title}</h3>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onClose}
+              className="rounded-full hover:bg-white/20 text-white"
+            >
+              <X size={20} />
+            </Button>
+          </div>
+
+          <ScrollArea className="flex-1">
+            <div className="p-8 space-y-10">
+              <div className="space-y-6">
+                <h4 className="text-2xl font-serif leading-tight text-[#1C1C1E]">
+                  {stage.prompt}
+                </h4>
+                <Textarea 
+                  value={localResponse}
+                  onChange={(e) => setLocalResponse(e.target.value)}
+                  placeholder={stage.placeholder}
+                  className="min-h-[160px] rounded-2xl border-none bg-secondary/30 focus-visible:ring-primary/20 p-6 text-lg font-normal resize-none placeholder:text-muted-foreground/60"
+                />
+              </div>
+
+              <EnergyTracker 
+                value={localEnergy}
+                onChange={setLocalEnergy}
+              />
+
+              <div className="p-8 bg-secondary/10 rounded-[2rem] space-y-6 border border-black/5">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#1C1C1E]">Quick Sketch or Photo</p>
+                  <p className="text-xs text-[#1C1C1E]/80">Capture a quick thought or snap a photo of your environment.</p>
+                </div>
+                
+                <SketchCanvas 
+                  value={localSketch}
+                  onChange={setLocalSketch}
+                  onPhotoUpload={setLocalPhoto}
+                />
+
+                {localPhoto && (
+                  <div className="relative rounded-2xl overflow-hidden apple-shadow group mt-4">
+                    <img src={localPhoto} alt="Upload" className="w-full h-auto" referrerPolicy="no-referrer" />
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      onClick={() => setLocalPhoto("")}
+                      className="absolute top-4 right-4 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </ScrollArea>
+
+          <div className="p-8 border-t border-secondary/50 flex gap-3 shrink-0">
+            <Button 
+              variant="ghost" 
+              onClick={onClose}
+              className="flex-1 rounded-full h-12 font-semibold"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                onSave({
+                  response: localResponse,
+                  energy: localEnergy,
+                  sketch: localSketch,
+                  photo: localPhoto
+                });
+                onClose();
+              }}
+              className="flex-1 rounded-full h-12 font-semibold apple-shadow"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
+
+const ShareReportModal = ({ 
+  isOpen, 
+  onClose, 
+  entry 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  entry: Entry;
+}) => {
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportAsImage = async () => {
+    if (!reportRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#F8F9FA"
+      });
+      const link = document.createElement("a");
+      link.download = `cafe-probe-report-${entry.id.slice(0, 8)}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast.success("Report exported as PNG");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export image");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportAsPDF = async () => {
+    if (!reportRef.current) return;
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#F8F9FA"
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [canvas.width / 2, canvas.height / 2]
+      });
+      pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`cafe-probe-report-${entry.id.slice(0, 8)}.pdf`);
+      toast.success("Report exported as PDF");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export PDF");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const copyAsText = () => {
+    const stagesText = STAGES_CONFIG.map(stage => {
+      const data = entry.stages[stage.id as keyof Entry["stages"]];
+      return `${stage.subtitle.toUpperCase()}\nPrompt: ${stage.prompt}\nResponse: ${data.response || "No response"}\nEnergy: ${data.energy}/6\n`;
+    }).join("\n");
+
+    const text = `CAFÉ PROBE REPORT\nDate: ${new Date(entry.date).toLocaleString()}\nParticipant: ${entry.participantName || "Anonymous"}\n\nOVERALL FEELING: ${EMOJIS[entry.overallFeeling]}\nINTERACTION: ${entry.interacted}\n\n${stagesText}\nFINAL REFLECTION: ${entry.idealLayout?.reflection || "No reflection"}`;
+    
+    navigator.clipboard.writeText(text);
+    toast.success("Report summary copied to clipboard");
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-10">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-md"
+        />
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 40 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 40 }}
+          className="relative w-full max-w-4xl bg-[#F8F9FA] rounded-[3rem] apple-shadow overflow-hidden flex flex-col max-h-[90vh]"
+        >
+          {/* Header */}
+          <div className="px-10 py-8 bg-white border-b border-secondary/30 flex justify-between items-center shrink-0">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                <Share2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold tracking-tight">Share Experience Report</h3>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Export your journey</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={copyAsText}
+                className="rounded-full h-10 px-4 gap-2 border-secondary hover:bg-secondary/20"
+              >
+                <Copy size={16} />
+                <span className="hidden sm:inline">Copy Text</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={exportAsImage}
+                disabled={isExporting}
+                className="rounded-full h-10 px-4 gap-2 border-secondary hover:bg-secondary/20"
+              >
+                <ImageIcon size={16} />
+                <span className="hidden sm:inline">PNG</span>
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={exportAsPDF}
+                disabled={isExporting}
+                className="rounded-full h-10 px-6 gap-2 apple-shadow"
+              >
+                <Download size={16} />
+                <span className="hidden sm:inline">Download PDF</span>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onClose}
+                className="rounded-full h-10 w-10 ml-2"
+              >
+                <X size={20} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Report Content */}
+          <ScrollArea className="flex-1">
+            <div className="p-10">
+              <div 
+                ref={reportRef}
+                className="bg-white rounded-[2.5rem] p-12 space-y-16 border border-black/5 shadow-sm max-w-[800px] mx-auto"
+              >
+                {/* Report Branding */}
+                <div className="flex justify-between items-start border-b border-secondary/50 pb-10">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                        <Zap size={18} />
+                      </div>
+                      <h1 className="text-2xl font-bold tracking-tighter">CAFÉ PROBE</h1>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">Experience Research Report</p>
+                      <p className="text-sm text-muted-foreground">A study of social interaction and spatial design.</p>
+                    </div>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <p className="text-sm font-bold">{new Date(entry.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(entry.date).toLocaleTimeString()}</p>
+                    <Badge variant="outline" className="mt-2 rounded-full border-primary/20 text-primary uppercase text-[9px] font-bold tracking-widest">
+                      ID: {entry.id.slice(0, 8)}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Participant Info */}
+                <div className="grid grid-cols-3 gap-8">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Participant</p>
+                    <p className="text-lg font-medium">{entry.participantName || "Anonymous"}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Overall Feeling</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{EMOJIS[entry.overallFeeling]}</span>
+                      <p className="text-sm font-medium">
+                        {["Stressed", "Unsure", "Neutral", "Good", "Excellent"][entry.overallFeeling]}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Interaction</p>
+                    <p className="text-sm font-medium">{entry.interacted}</p>
+                  </div>
+                </div>
+
+                {/* Journey Stages */}
+                <div className="space-y-12">
+                  <h2 className="text-xs font-bold uppercase tracking-[0.4em] text-muted-foreground border-b border-secondary/30 pb-4">Journey Reflections</h2>
+                  <div className="grid grid-cols-1 gap-12">
+                    {STAGES_CONFIG.map(stage => {
+                      const data = entry.stages[stage.id as keyof Entry["stages"]];
+                      return (
+                        <div key={stage.id} className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full bg-[var(--color-${stage.accent})] flex items-center justify-center text-white`}>
+                                {stage.icon}
+                              </div>
+                              <h3 className="text-lg font-bold">{stage.subtitle}</h3>
+                            </div>
+                            <div className="flex gap-1">
+                              {[...Array(7)].map((_, i) => (
+                                <div 
+                                  key={i} 
+                                  className={`w-2 h-4 rounded-full ${
+                                    i <= data.energy 
+                                      ? `bg-[var(--color-${stage.accent})]` 
+                                      : "bg-secondary/50"
+                                  }`} 
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="pl-11 space-y-6">
+                            <div className="space-y-2">
+                              <p className="text-xs italic text-muted-foreground font-serif">"{stage.prompt}"</p>
+                              <p className="text-base leading-relaxed text-[#1C1C1E]">
+                                {data.response || "No response recorded."}
+                              </p>
+                            </div>
+
+                            {(data.sketch || data.photo) && (
+                              <div className="grid grid-cols-2 gap-4">
+                                {data.sketch && (
+                                  <div className="space-y-2">
+                                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Sketch</p>
+                                    <div className="rounded-2xl overflow-hidden border border-secondary/50 bg-secondary/10 p-2">
+                                      <img src={data.sketch} alt="Sketch" className="w-full h-auto rounded-xl" referrerPolicy="no-referrer" />
+                                    </div>
+                                  </div>
+                                )}
+                                {data.photo && (
+                                  <div className="space-y-2">
+                                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Photo</p>
+                                    <div className="rounded-2xl overflow-hidden border border-secondary/50 bg-secondary/10 p-2">
+                                      <img src={data.photo} alt="Photo" className="w-full h-auto rounded-xl" referrerPolicy="no-referrer" />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Ideal Layout */}
+                {entry.idealLayout && (
+                  <div className="space-y-8 pt-10 border-t border-secondary/50">
+                    <h2 className="text-xs font-bold uppercase tracking-[0.4em] text-muted-foreground">Ideal Café Design</h2>
+                    <div className="rounded-[2rem] overflow-hidden border border-secondary/50 bg-secondary/5 aspect-video relative">
+                      <CafeFloorPlan />
+                      {entry.idealLayout.elements.map(el => (
+                        <div 
+                          key={el.id}
+                          className="absolute text-3xl select-none pointer-events-none"
+                          style={{ 
+                            left: `${el.x}%`, 
+                            top: `${el.y}%`,
+                            transform: `translate(-50%, -50%) rotate(${el.rotation}deg) scale(${el.scale})`
+                          }}
+                        >
+                          {el.icon}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Design Reflection</p>
+                      <p className="text-base italic text-[#1C1C1E] leading-relaxed">
+                        "{entry.idealLayout.reflection}"
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="pt-16 border-t border-secondary/30 flex flex-col items-center gap-6 opacity-40">
+                  <div className="h-px w-12 bg-foreground" />
+                  <p className="text-[9px] uppercase tracking-[0.4em] font-bold text-center">
+                    Slow Technology • Introspection • Café Probe Project
+                  </p>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};
+
 // --- Main App ---
 
 export default function App() {
@@ -733,6 +1179,8 @@ export default function App() {
   const [canvasReflection, setCanvasReflection] = useState("");
   const [isToolkitCollapsed, setIsToolkitCollapsed] = useState(false);
   const [isReflectionCollapsed, setIsReflectionCollapsed] = useState(true);
+  const [editingStageId, setEditingStageId] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Current Journey State
@@ -810,6 +1258,27 @@ export default function App() {
     toast.info("Entry deleted");
   };
 
+  const updateStageData = (entryId: string, stageId: string, newData: Partial<StageData>) => {
+    const updatedJournal = journal.map(entry => {
+      if (entry.id === entryId) {
+        return {
+          ...entry,
+          stages: {
+            ...entry.stages,
+            [stageId]: {
+              ...entry.stages[stageId as keyof Entry["stages"]],
+              ...newData
+            }
+          }
+        };
+      }
+      return entry;
+    });
+    setJournal(updatedJournal);
+    localStorage.setItem("cafe_probe_journal", JSON.stringify(updatedJournal));
+    toast.success("Entry updated");
+  };
+
   const startNewJourney = () => {
     setResponses({
       preparation: { prompt: "", response: "", energy: 2, sketch: "", photo: "" },
@@ -877,12 +1346,12 @@ export default function App() {
               exit={{ opacity: 0, y: -20 }}
               className="flex-1 flex flex-col items-center justify-center text-center py-12 bg-[#F5F0E8] -mx-6 px-6 rounded-[3rem]"
             >
-              <h1 className="text-6xl font-serif mb-2 text-[#3D2B1F]">The Cafe Experience</h1>
-              <p className="text-xl font-serif italic text-[#3D2B1F]/60 mb-8">A Cultural Probe on Social Interaction</p>
+              <h1 className="text-6xl font-serif mb-2 text-[#1C1C1E]">The Cafe Experience</h1>
+              <p className="text-xl font-serif italic text-[#2C2C2E] mb-8">A Cultural Probe on Social Interaction</p>
               
               <div className="w-48 h-0.5 bg-[#D48C6A] mb-12" />
               
-              <div className="max-w-xl space-y-8 text-left text-[#3D2B1F]/80 leading-relaxed">
+              <div className="max-w-xl space-y-8 text-left text-[#1C1C1E] leading-relaxed">
                 <div className="space-y-6">
                   <p className="font-bold">Thanks for being part of this project, we really appreciate it.</p>
                   <p>This kit is meant to guide you through your next café visit and help you think about your experience, especially how you interact with the space and people around you.</p>
@@ -890,30 +1359,30 @@ export default function App() {
                   <p>Please complete each activity in order and only open each envelope when instructed.</p>
                 </div>
 
-                <div className="p-8 bg-white/40 backdrop-blur-sm rounded-3xl border border-[#3D2B1F]/5 space-y-4">
-                  <div className="flex items-center gap-2 text-[#3D2B1F]/60">
+                <div className="p-8 bg-white/40 backdrop-blur-sm rounded-3xl border border-[#1C1C1E]/10 space-y-4">
+                  <div className="flex items-center gap-2 text-[#2C2C2E]">
                     <User size={16} />
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em]">Participant Identity</p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs text-[#3D2B1F]/60">Your name or nickname (optional)</p>
+                    <p className="text-xs text-[#2C2C2E]">Your name or nickname (optional)</p>
                     <input 
                       type="text"
                       value={participantName}
                       onChange={(e) => setParticipantName(e.target.value)}
                       placeholder="Enter your name..."
-                      className="w-full bg-white/60 border-none rounded-xl h-12 px-4 text-sm focus:ring-2 focus:ring-[#3D2B1F]/10 outline-none transition-all placeholder:text-[#3D2B1F]/20"
+                      className="w-full bg-white/60 border-none rounded-xl h-12 px-4 text-sm focus:ring-2 focus:ring-[#1C1C1E]/10 outline-none transition-all placeholder:text-[#1C1C1E]/30"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-6">
-                  <p className="italic text-[#3D2B1F]/60">We're excited to see your responses and learn from your experience.</p>
+                  <p className="italic text-[#2C2C2E]">We're excited to see your responses and learn from your experience.</p>
                   <p className="font-medium">— Café Social Experience Research Team</p>
                 </div>
               </div>
 
-              <Button onClick={startNewJourney} className="mt-12 h-14 px-10 rounded-full text-base font-medium bg-[#3D2B1F] hover:bg-[#3D2B1F]/90 text-white apple-shadow group">
+              <Button onClick={startNewJourney} className="mt-12 h-14 px-10 rounded-full text-base font-medium bg-[#1C1C1E] hover:bg-[#1C1C1E]/90 text-white apple-shadow group">
                 Start your experience
                 <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Button>
@@ -956,7 +1425,7 @@ export default function App() {
                 <Card className="apple-shadow border-none bg-white rounded-[2.5rem] overflow-hidden">
                   <CardContent className="p-8 md:p-12 space-y-10">
                     <div className="space-y-6">
-                      <h3 className="text-2xl font-serif leading-tight text-[#3D2B1F]">
+                      <h3 className="text-2xl font-serif leading-tight text-[#1C1C1E]">
                         {STAGES_CONFIG[currentStep].prompt}
                       </h3>
                       <Textarea 
@@ -969,7 +1438,7 @@ export default function App() {
                           }
                         })}
                         placeholder={STAGES_CONFIG[currentStep].placeholder}
-                        className="min-h-[160px] rounded-2xl border-none bg-secondary/30 focus-visible:ring-primary/20 p-6 text-lg font-normal resize-none placeholder:text-muted-foreground/30"
+                        className="min-h-[160px] rounded-2xl border-none bg-secondary/30 focus-visible:ring-primary/20 p-6 text-lg font-normal resize-none placeholder:text-muted-foreground/60"
                       />
                     </div>
 
@@ -987,8 +1456,8 @@ export default function App() {
                     {/* Additional Instructions - Available in all envelopes */}
                     <div className="p-8 bg-secondary/10 rounded-[2rem] space-y-6 border border-black/5">
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Quick Sketch or Photo</p>
-                        <p className="text-xs text-muted-foreground/70">Capture a quick thought or snap a photo of your environment.</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#1C1C1E]">Quick Sketch or Photo</p>
+                        <p className="text-xs text-[#1C1C1E]/80">Capture a quick thought or snap a photo of your environment.</p>
                       </div>
                       
                       <SketchCanvas 
@@ -1510,6 +1979,15 @@ export default function App() {
                       <div className="flex gap-2">
                         <Button 
                           variant="ghost" 
+                          size="sm" 
+                          onClick={() => setIsShareModalOpen(true)}
+                          className="rounded-full h-10 px-4 text-primary font-semibold flex items-center gap-2 hover:bg-primary/5"
+                        >
+                          <Share2 size={18} />
+                          Share Report
+                        </Button>
+                        <Button 
+                          variant="ghost" 
                           size="icon" 
                           className="rounded-full h-10 w-10 text-muted-foreground hover:text-destructive"
                           onClick={() => {
@@ -1591,7 +2069,11 @@ export default function App() {
                             {STAGES_CONFIG.map(stage => {
                               const data = journal.find(e => e.id === selectedEntryId)!.stages[stage.id as keyof Entry["stages"]];
                               return (
-                                <Card key={stage.id} className={`apple-shadow border-none rounded-3xl overflow-hidden bg-[var(--color-${stage.theme})]`}>
+                                <Card 
+                                  key={stage.id} 
+                                  onClick={() => setEditingStageId(stage.id)}
+                                  className={`apple-shadow border-none rounded-3xl overflow-hidden bg-[var(--color-${stage.theme})] cursor-pointer hover:scale-[1.02] transition-transform active:scale-[0.98] group`}
+                                >
                                   <div className={`px-6 py-3 bg-[var(--color-${stage.accent})] text-white flex justify-between items-center`}>
                                     <span className="text-[10px] font-bold uppercase tracking-widest">{stage.subtitle}</span>
                                     <div className="flex gap-0.5">
@@ -1607,12 +2089,17 @@ export default function App() {
                                       ))}
                                     </div>
                                   </div>
-                                  <CardContent className="p-6 space-y-4">
-                                    <p className="text-sm font-serif italic text-[#3D2B1F]/60 leading-relaxed">
+                                  <CardContent className="p-6 space-y-4 relative">
+                                    <div className="absolute top-4 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5 text-white">
+                                        <Pencil size={12} />
+                                      </div>
+                                    </div>
+                                    <p className="text-sm font-serif italic text-[#2C2C2E] leading-relaxed">
                                       "{stage.prompt}"
                                     </p>
-                                    <p className="text-base text-[#3D2B1F] leading-relaxed">
-                                      {data.response}
+                                    <p className="text-base text-[#1C1C1E] leading-relaxed">
+                                      {data.response || <span className="text-muted-foreground/40 italic text-sm">No response yet. Tap to add...</span>}
                                     </p>
                                     {data.sketch && (
                                       <div className="rounded-xl overflow-hidden border border-black/5 bg-white/50 p-2">
@@ -1631,6 +2118,17 @@ export default function App() {
                               );
                             })}
                           </div>
+
+                          {/* Detail Edit Modal */}
+                          {editingStageId && (
+                            <StageDetailModal 
+                              isOpen={!!editingStageId}
+                              onClose={() => setEditingStageId(null)}
+                              stage={STAGES_CONFIG.find(s => s.id === editingStageId)!}
+                              data={journal.find(e => e.id === selectedEntryId)!.stages[editingStageId as keyof Entry["stages"]]}
+                              onSave={(newData) => updateStageData(selectedEntryId!, editingStageId, newData)}
+                            />
+                          )}
                         </div>
 
                         {/* Ideal Layout Preview */}
@@ -1696,6 +2194,15 @@ export default function App() {
                         </div>
                       </div>
                     )}
+
+                    {/* Share Report Modal */}
+                    {isShareModalOpen && journal.find(e => e.id === selectedEntryId) && (
+                      <ShareReportModal 
+                        isOpen={isShareModalOpen}
+                        onClose={() => setIsShareModalOpen(false)}
+                        entry={journal.find(e => e.id === selectedEntryId)!}
+                      />
+                    )}
                   </motion.div>
                 ) : (
                   <motion.div
@@ -1743,14 +2250,14 @@ export default function App() {
                                       <Calendar size={18} />
                                     </div>
                                     <div>
-                                      <p className="text-lg font-serif text-[#3D2B1F]">
+                                      <p className="text-lg font-serif text-[#1C1C1E]">
                                         {new Date(entry.date).toLocaleDateString(undefined, { 
                                           month: 'short', 
                                           day: 'numeric', 
                                           year: 'numeric' 
                                         })}
                                       </p>
-                                      <p className="text-[10px] text-[#3D2B1F]/40 uppercase tracking-widest font-bold flex items-center gap-1">
+                                      <p className="text-[10px] text-[#555558] uppercase tracking-widest font-bold flex items-center gap-1">
                                         <Clock size={10} />
                                         {new Date(entry.date).toLocaleTimeString(undefined, { 
                                           hour: '2-digit', 

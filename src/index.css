@@ -78,7 +78,7 @@
     --secondary: #E5E5EA; /* iOS System Gray 5 */
     --secondary-foreground: #000000;
     --muted: #F2F2F7;
-    --muted-foreground: #8E8E93; /* iOS System Gray */
+    --muted-foreground: #48484A; /* Darker iOS System Gray for better contrast */
     --accent: #E5E5EA;
     --accent-foreground: #000000;
     --destructive: #FF3B30; /* iOS Red */
