@@ -878,10 +878,22 @@ const ShareReportModal = ({
     if (!reportRef.current) return;
     setIsExporting(true);
     try {
+      // Ensure the element is fully rendered and capture the full height
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
-        backgroundColor: "#F8F9FA"
+        allowTaint: true,
+        backgroundColor: "#F8F9FA",
+        logging: false,
+        width: reportRef.current.offsetWidth,
+        height: reportRef.current.scrollHeight,
+        onclone: (clonedDoc) => {
+          const el = clonedDoc.querySelector('[data-report-container="true"]') as HTMLElement;
+          if (el) {
+            el.style.height = 'auto';
+            el.style.overflow = 'visible';
+          }
+        }
       });
       const link = document.createElement("a");
       link.download = `cafe-probe-report-${entry.id.slice(0, 8)}.png`;
@@ -889,7 +901,7 @@ const ShareReportModal = ({
       link.click();
       toast.success("Report exported as PNG");
     } catch (err) {
-      console.error(err);
+      console.error("Export Error:", err);
       toast.error("Failed to export image");
     } finally {
       setIsExporting(false);
@@ -903,19 +915,32 @@ const ShareReportModal = ({
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
-        backgroundColor: "#F8F9FA"
+        allowTaint: true,
+        backgroundColor: "#F8F9FA",
+        logging: false,
+        width: reportRef.current.offsetWidth,
+        height: reportRef.current.scrollHeight,
+        onclone: (clonedDoc) => {
+          const el = clonedDoc.querySelector('[data-report-container="true"]') as HTMLElement;
+          if (el) {
+            el.style.height = 'auto';
+            el.style.overflow = 'visible';
+          }
+        }
       });
+      
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "px",
         format: [canvas.width / 2, canvas.height / 2]
       });
+      
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
       pdf.save(`cafe-probe-report-${entry.id.slice(0, 8)}.pdf`);
       toast.success("Report exported as PDF");
     } catch (err) {
-      console.error(err);
+      console.error("Export Error:", err);
       toast.error("Failed to export PDF");
     } finally {
       setIsExporting(false);
@@ -1005,11 +1030,12 @@ const ShareReportModal = ({
           </div>
 
           {/* Report Content */}
-          <ScrollArea className="flex-1">
-            <div className="p-10">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden touch-pan-y scrollbar-hide md:scrollbar-default">
+            <div className="p-6 md:p-10">
               <div 
                 ref={reportRef}
-                className="bg-white rounded-[2.5rem] p-12 space-y-16 border border-black/5 shadow-sm max-w-[800px] mx-auto"
+                data-report-container="true"
+                className="bg-white rounded-[2.5rem] p-8 md:p-12 space-y-12 md:space-y-16 border border-black/5 shadow-sm max-w-[800px] mx-auto"
               >
                 {/* Report Branding */}
                 <div className="flex justify-between items-start border-b border-secondary/50 pb-10">
@@ -1157,7 +1183,7 @@ const ShareReportModal = ({
                 </div>
               </div>
             </div>
-          </ScrollArea>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>
